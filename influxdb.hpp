@@ -6,6 +6,10 @@
 
   Please see LICENSE file or visit https://github.com/orca-zhang/influxdb-cpp for details.
  */
+
+#ifndef INFLUXDB_CPP_HPP
+#define INFLUXDB_CPP_HPP
+
 #include <sstream>
 #include <cstring>
 #include <cstdio>
@@ -39,12 +43,10 @@ namespace influxdb_cpp {
         std::string db_;
         std::string usr_;
         std::string pwd_;
-        server_info(const std::string& host, int port, const std::string& db = "", const std::string& usr = "", const std::string& pwd = "") {
-            port_ = port;
-            db_   = db;
-            usr_  = usr;
-            pwd_  = pwd;  
-
+        std::string precision_;
+        server_info(const std::string& host, int port, const std::string& db = "", const std::string& usr = "", const std::string& pwd = "", const std::string& precision="ms")
+            : host_(host), port_(port), db_(db), usr_(usr), pwd_(pwd), precision_(precision)
+        {
             //convert hostname to ip-address
             hostent * record = gethostbyname(host.c_str());
             if(record == NULL)
@@ -120,6 +122,7 @@ namespace influxdb_cpp {
             lines_ << delim;
             _escape(k, ",= ");
             lines_.precision(prec);
+            lines_.setf(std::ios::fixed);
             lines_ << '=' << v;
             return (detail::field_caller&)*this;
         }
@@ -234,8 +237,8 @@ namespace influxdb_cpp {
 
             for(;;) {
                 iv[0].iov_len = snprintf(&header[0], len,
-                    "%s /%s?db=%s&u=%s&p=%s%s HTTP/1.1\r\nHost: %s\r\nContent-Length: %d\r\n\r\n",
-                    method, uri, si.db_.c_str(), si.usr_.c_str(), si.pwd_.c_str(),
+                    "%s /%s?db=%s&u=%s&p=%s&epoch=%s%s HTTP/1.1\r\nHost: %s\r\nContent-Length: %d\r\n\r\n",
+                    method, uri, si.db_.c_str(), si.usr_.c_str(), si.pwd_.c_str(), si.precision_.c_str(),
                     querystring.c_str(), si.host_.c_str(), (int)body.length());
                 if((int)iv[0].iov_len >= len)
                     header.resize(len *= 2);
@@ -319,3 +322,5 @@ namespace influxdb_cpp {
         }
     }
 }
+
+#endif // INFLUXDB_CPP_HPP
